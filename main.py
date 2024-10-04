@@ -72,9 +72,7 @@ class App(TkinterDnD.Tk):
         if self.image_path:
             try:
                 result_image = remove(Image.open(self.image_path))
-                # Imageは__equal__がshallowなのでcopyでdeepにしとく
-                self.result_image = result_image.copy()
-                print(self.result_image.__dict__)
+                self.result_image = result_image
                 self.open_result_window(result_image)
             except Exception as e:
                 print(f"切り抜き中にエラーが発生しました: {e}")
@@ -86,9 +84,8 @@ class App(TkinterDnD.Tk):
         self.result_image_window.grab_set()  # このウィンドウにフォーカスを設定
         
         label_frame = tk.LabelFrame(self.result_image_window, width=500, height=500)
-        print(self.result_image.__dict__)
+
         result_image.thumbnail((500, 500))
-        print(self.result_image.__dict__)
         result_photo_image = ImageTk.PhotoImage(result_image)
         result_image_label = tk.Label(label_frame, image=result_photo_image)
         result_image_label.image = result_photo_image  # GC対策
@@ -105,8 +102,7 @@ class App(TkinterDnD.Tk):
     def save_result_image(self):
         try:
             # 処理された結果の画像を "out.png" として保存
-            # この時点でリサイズ
-            self.result_image.save(f"./output/output-{uuid.uuid1()}.png")
+            self.result_image.save(f"out-{uuid.uuid1()}.png")
             messagebox.showinfo("お知らせ", "画像を保存しました！")
         except Exception as e:
             messagebox.showerror("エラー", f"画像の保存に失敗しました: {e}")
