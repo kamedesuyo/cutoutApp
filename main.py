@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinter import messagebox, filedialog
-from PIL import Image, ImageTk
+from PIL import Image, ImageTk, ImageGrab
 from tkinterdnd2 import DND_FILES, TkinterDnD
 from rembg import remove
 import subprocess
@@ -20,7 +20,7 @@ class App(TkinterDnD.Tk):
         
         self.title("画像切り抜きアプリ")
         self.geometry(f'{WIDTH}x{HEIGHT}')
-        
+        self.bind('<Control-v>',self.handle_image_paste)
         self.create_widgets()
         
     def create_widgets(self):
@@ -56,7 +56,26 @@ class App(TkinterDnD.Tk):
         self.image_path = str(event.data).strip("{}")  # 中括弧を削除
         self.clear_image()
         self.display_image(self.image_path)
-    
+
+    def handle_image_paste(self,event):
+        self.image_path = "clipboard"
+        self.clear_image()
+        self.display_clipboard_image()
+        
+    def load_clipboard_image(self):
+        self.clipboard_image = ImageGrab.grabclipboard()
+
+    def display_clipboard_image(self):
+        self.load_clipboard_image()
+        if self.clipboard_image:
+            clipboard_image = self.clipboard_image.copy()
+            clipboard_image.thumbnail((400,400))
+            photo_image = ImageTk.PhotoImage(clipboard_image)
+            self.image_label = tk.Label(self.label_frame, image=photo_image)
+            self.image_label.image = photo_image  # ガーベジコレクションを防ぐために参照を保持
+            self.image_label.pack()
+            self.image_loaded = True
+
     def display_image(self, path):
         try:
             image = Image.open(path)
@@ -70,22 +89,30 @@ class App(TkinterDnD.Tk):
             print(f"画像の読み込み中にエラーが発生しました: {e}")
     
     def cutout(self):
-        if self.image_path:
+        if self.image_path==None:
             try:
                 result_image = remove(Image.open(self.image_path))
-                self.result_image = result_image.copy() # 代入ではshallowになるためcopy
                 self.open_result_window(result_image)
             except Exception as e:
                 print(f"切り抜き中にエラーが発生しました: {e}")
+        elif self.image_path == "clipboard":
+            try:
+                result_image = remove(self.clipboard_image)
+                self.open_result_window(result_image) 
+            except Exception as e:
+                print(f"切り抜き中にエラーが発生しました: {e}")
+
     
     def open_result_window(self, result_image):
+        # 変形前に切り抜き結果を保存
+        self.result_image = result_image.copy()
         # subwindow
         self.result_image_window = tk.Toplevel(self)
         self.result_image_window.title("結果")
         self.result_image_window.geometry("500x600")
         self.result_image_window.grab_set()  # このウィンドウにフォーカスを設定
         
-        label_frame = tk.LabelFrame(self.result_image_window, width=500, height=500,)
+        label_frame = tk.LabelFrame(self.result_image_window, width=500, height=500)
 
         result_image.thumbnail((500, 500))
         result_photo_image = ImageTk.PhotoImage(result_image)
@@ -109,7 +136,7 @@ class App(TkinterDnD.Tk):
             messagebox.showerror("エラー", f"画像の保存に失敗しました: {e}")
 
     def open_save_file(self):
-        subprocess.Popen(["explorer",r".\output"])        
-        pass
+        subprocess.Popen(["explorer",r".\output"])
+        
 if __name__ == "__main__":
     App().mainloop()
