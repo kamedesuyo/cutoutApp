@@ -3,6 +3,7 @@ from tkinter import messagebox, filedialog
 from PIL import Image, ImageTk
 from tkinterdnd2 import DND_FILES, TkinterDnD
 from rembg import remove
+import subprocess
 import uuid
 
 # todo alpha_matting_foreground_threshold,alpha_matting_background_thresholdの入力
@@ -72,40 +73,43 @@ class App(TkinterDnD.Tk):
         if self.image_path:
             try:
                 result_image = remove(Image.open(self.image_path))
-                self.result_image = result_image
+                self.result_image = result_image.copy() # 代入ではshallowになるためcopy
                 self.open_result_window(result_image)
             except Exception as e:
                 print(f"切り抜き中にエラーが発生しました: {e}")
     
     def open_result_window(self, result_image):
+        # subwindow
         self.result_image_window = tk.Toplevel(self)
         self.result_image_window.title("結果")
-        self.result_image_window.geometry("500x550")
+        self.result_image_window.geometry("500x600")
         self.result_image_window.grab_set()  # このウィンドウにフォーカスを設定
         
-        label_frame = tk.LabelFrame(self.result_image_window, width=500, height=500)
+        label_frame = tk.LabelFrame(self.result_image_window, width=500, height=500,)
 
         result_image.thumbnail((500, 500))
         result_photo_image = ImageTk.PhotoImage(result_image)
         result_image_label = tk.Label(label_frame, image=result_photo_image)
         result_image_label.image = result_photo_image  # GC対策
 
-
-        
         label_frame.pack(padx=0.5, pady=0.5)
         result_image_label.pack()
         
         tk.Button(self.result_image_window, text="保存", command=self.save_result_image).pack()
-        
+        tk.Button(self.result_image_window, text="保存したファイルの場所を開く", command=self.open_save_file).pack()
+
         self.result_image_window.protocol("WM_DELETE_WINDOW", self.result_image_window.destroy)
     
     def save_result_image(self):
         try:
             # 処理された結果の画像を "out.png" として保存
-            self.result_image.save(f"out-{uuid.uuid1()}.png")
+            self.result_image.save(f"./output/out-{uuid.uuid1()}.png")
             messagebox.showinfo("お知らせ", "画像を保存しました！")
         except Exception as e:
             messagebox.showerror("エラー", f"画像の保存に失敗しました: {e}")
 
+    def open_save_file(self):
+        subprocess.Popen(["explorer",r".\output"])        
+        pass
 if __name__ == "__main__":
     App().mainloop()
