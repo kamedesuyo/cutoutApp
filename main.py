@@ -58,15 +58,21 @@ class App(TkinterDnD.Tk):
         self.display_image(self.image_path)
 
     def handle_image_paste(self,event):
-        self.image_path = "clipboard"
         self.clear_image()
-        self.display_clipboard_image()
+        self.clipboard_data = self.load_clipboard_image()
+        if isinstance(self.clipboard_data,list):
+            self.image_path = self.clipboard_data[0]
+            self.display_image(self.image_path)
+        elif isinstance(self.clipboard_data,Image.Image):
+            self.image_path = "clipboard"
+            self.display_clipboard_image(self.clipboard_data)
         
     def load_clipboard_image(self):
-        self.clipboard_image = ImageGrab.grabclipboard()
+        clipboard_data = ImageGrab.grabclipboard()
+        return clipboard_data
 
-    def display_clipboard_image(self):
-        self.load_clipboard_image()
+    def display_clipboard_image(self,clipboard_data):
+        self.clipboard_image = clipboard_data
         if self.clipboard_image:
             clipboard_image = self.clipboard_image.copy()
             clipboard_image.thumbnail((400,400))
@@ -89,16 +95,16 @@ class App(TkinterDnD.Tk):
             print(f"画像の読み込み中にエラーが発生しました: {e}")
     
     def cutout(self):
-        if self.image_path==None:
-            try:
-                result_image = remove(Image.open(self.image_path))
-                self.open_result_window(result_image)
-            except Exception as e:
-                print(f"切り抜き中にエラーが発生しました: {e}")
-        elif self.image_path == "clipboard":
+        if self.image_path == "clipboard":
             try:
                 result_image = remove(self.clipboard_image)
                 self.open_result_window(result_image) 
+            except Exception as e:
+                print(f"切り抜き中にエラーが発生しました: {e}")
+        elif self.image_path:
+            try:
+                result_image = remove(Image.open(self.image_path))
+                self.open_result_window(result_image)
             except Exception as e:
                 print(f"切り抜き中にエラーが発生しました: {e}")
 
